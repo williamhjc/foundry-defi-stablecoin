@@ -81,6 +81,10 @@ The system enforces the following invariants:
 2. Users cannot mint DSC if their health factor is below `MIN_HEALTH_FACTOR`.
 3. Only users with a health factor below `MIN_HEALTH_FACTOR` can be liquidated.
 
+## Test Coverage
+
+![](https://blog.jerichos.site/usr/uploads/2025/09/608505353.png)
+
 ## Installation and Setup
 
 ### Prerequisites
