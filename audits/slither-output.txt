@@ -1,0 +1,114 @@
+INFO:Detectors:
+DSCEngine._calculateHealthFactor(uint256,uint256) (src/DSCEngine.sol#273-281) performs a multiplication on the result of a division:
+        - collateralAdjustedForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION (src/DSCEngine.sol#279)
+        - (collateralAdjustedForThreshold * PRECISION) / totalDscMinted (src/DSCEngine.sol#280)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#divide-before-multiply
+INFO:Detectors:
+Reentrancy in DSCEngine.depositCollateralAndMintDsc(address,uint256,uint256) (src/DSCEngine.sol#96-103):
+        External calls:
+        - depositCollateral(tokenCollateralAddress,amountCollateral) (src/DSCEngine.sol#101)
+                - success = IERC20(tokenCollateralAddress).transferFrom(msg.sender,address(this),amountCollateral) (src/DSCEngine.sol#221)
+        - mintDsc(amountDscToMint) (src/DSCEngine.sol#102)
+                - minted = i_dsc.mint(msg.sender,amountDscToMint) (src/DSCEngine.sol#202)
+        State variables written after the call(s):
+        - mintDsc(amountDscToMint) (src/DSCEngine.sol#102)
+                - _status = _NOT_ENTERED (lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol#67)
+                - _status = _ENTERED (lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol#61)
+        ReentrancyGuard._status (lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol#37) can be used in cross function reentrancies:
+        - ReentrancyGuard._nonReentrantAfter() (lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol#64-68)
+        - ReentrancyGuard._nonReentrantBefore() (lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol#56-62)
+Reentrancy in DSCEngine.liquidate(address,address,uint256) (src/DSCEngine.sol#162-193):
+        External calls:
+        - _redeemCollateral(collateral,tokenAmountFromDebtCovered + bonusCollateral,user,msg.sender) (src/DSCEngine.sol#181)
+                - success = IERC20(tokenCollateralAddress).transfer(to,amountCollateral) (src/DSCEngine.sol#232)
+        - _burnDsc(debtToCover,user,msg.sender) (src/DSCEngine.sol#182)
+                - success = i_dsc.transferFrom(dscFrom,address(this),amountDscToBurn) (src/DSCEngine.sol#241)
+                - i_dsc.burn(amountDscToBurn) (src/DSCEngine.sol#246)
+        State variables written after the call(s):
+        - _burnDsc(debtToCover,user,msg.sender) (src/DSCEngine.sol#182)
+                - s_DSCMinted[onBehalfOf] -= amountDscToBurn (src/DSCEngine.sol#239)
+        DSCEngine.s_DSCMinted (src/DSCEngine.sol#55) can be used in cross function reentrancies:
+        - DSCEngine._burnDsc(uint256,address,address) (src/DSCEngine.sol#238-247)
+        - DSCEngine._getAccountInformation(address) (src/DSCEngine.sol#249-256)
+        - DSCEngine.mintDsc(uint256) (src/DSCEngine.sol#199-207)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-1
+INFO:Detectors:
+DSCEngine._getUsdValue(address,uint256) (src/DSCEngine.sol#263-271) ignores return value by (None,price,None,None,None) = priceFeed.staleCheckLatestRoundData() (src/DSCEngine.sol#265)
+DSCEngine.getTokenAmountFromUsd(address,uint256) (src/DSCEngine.sol#327-335) ignores return value by (None,price,None,None,None) = priceFeed.staleCheckLatestRoundData() (src/DSCEngine.sol#329)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
+INFO:Detectors:
+Reentrancy in DSCEngine.redeemCollateralForDsc(address,uint256,uint256) (src/DSCEngine.sol#111-119):
+        External calls:
+        - _burnDsc(amountDscToBurn,msg.sender,msg.sender) (src/DSCEngine.sol#116)
+                - success = i_dsc.transferFrom(dscFrom,address(this),amountDscToBurn) (src/DSCEngine.sol#241)
+                - i_dsc.burn(amountDscToBurn) (src/DSCEngine.sol#246)
+        - _redeemCollateral(tokenCollateralAddress,amountCollateral,msg.sender,msg.sender) (src/DSCEngine.sol#117)
+                - success = IERC20(tokenCollateralAddress).transfer(to,amountCollateral) (src/DSCEngine.sol#232)
+        Event emitted after the call(s):
+        - CollateralRedeemed(from,to,tokenCollateralAddress,amountCollateral) (src/DSCEngine.sol#231)
+                - _redeemCollateral(tokenCollateralAddress,amountCollateral,msg.sender,msg.sender) (src/DSCEngine.sol#117)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
+INFO:Detectors:
+OracleLib.staleCheckLatestRoundData(AggregatorV3Interface) (src/libraries/OracleLib.sol#20-35) uses timestamp for comparisons
+        Dangerous comparisons:
+        - secondsSince > TIMEOUT (src/libraries/OracleLib.sol#32)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+DSCEngine.mintDsc(uint256) (src/DSCEngine.sol#199-207) compares to a boolean constant:
+        -minted != true (src/DSCEngine.sol#204)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#boolean-equality
+INFO:Detectors:
+2 different versions of Solidity are used:
+        - Version constraint ^0.8.0 is used by:
+                -^0.8.0 (lib/chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol#2)
+                -^0.8.0 (lib/openzeppelin-contracts/contracts/access/Ownable.sol#4)
+                -^0.8.0 (lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol#4)
+                -^0.8.0 (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#4)
+                -^0.8.0 (lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol#4)
+                -^0.8.0 (lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Burnable.sol#4)
+                -^0.8.0 (lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol#4)
+                -^0.8.0 (lib/openzeppelin-contracts/contracts/utils/Context.sol#4)
+        - Version constraint ^0.8.19 is used by:
+                -^0.8.19 (src/DSCEngine.sol#2)
+                -^0.8.19 (src/DecentralizedStableCoin.sol#2)
+                -^0.8.19 (src/libraries/OracleLib.sol#2)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#different-pragma-directives-are-used
+INFO:Detectors:
+Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+        - FullInlinerNonExpressionSplitArgumentEvaluationOrder
+        - MissingSideEffectsOnSelectorAccess
+        - AbiReencodingHeadOverflowWithStaticArrayCleanup
+        - DirtyBytesArrayToStorage
+        - DataLocationChangeInInternalOverride
+        - NestedCalldataArrayAbiReencodingSizeValidation
+        - SignedImmutables
+        - ABIDecodeTwoDimensionalArrayMemory
+        - KeccakCaching.
+It is used by:
+        - ^0.8.0 (lib/chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol#2)
+        - ^0.8.0 (lib/openzeppelin-contracts/contracts/access/Ownable.sol#4)
+        - ^0.8.0 (lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol#4)
+        - ^0.8.0 (lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#4)
+        - ^0.8.0 (lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol#4)
+        - ^0.8.0 (lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Burnable.sol#4)
+        - ^0.8.0 (lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol#4)
+        - ^0.8.0 (lib/openzeppelin-contracts/contracts/utils/Context.sol#4)
+Version constraint ^0.8.19 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+        - VerbatimInvalidDeduplication
+        - FullInlinerNonExpressionSplitArgumentEvaluationOrder
+        - MissingSideEffectsOnSelectorAccess.
+It is used by:
+        - ^0.8.19 (src/DSCEngine.sol#2)
+        - ^0.8.19 (src/DecentralizedStableCoin.sol#2)
+        - ^0.8.19 (src/libraries/OracleLib.sol#2)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
+INFO:Detectors:
+Variable DSCEngine.s_DSCMinted (src/DSCEngine.sol#55) is not in mixedCase
+Parameter DecentralizedStableCoin.mint(address,uint256)._to (src/DecentralizedStableCoin.sol#25) is not in mixedCase
+Parameter DecentralizedStableCoin.mint(address,uint256)._amount (src/DecentralizedStableCoin.sol#25) is not in mixedCase
+Parameter DecentralizedStableCoin.burn(uint256)._amount (src/DecentralizedStableCoin.sol#36) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+INFO:Detectors:
+DSCEngine.FEED_PRECISION (src/DSCEngine.sol#48) is never used in DSCEngine (src/DSCEngine.sol#28-381)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-state-variable
+INFO:Slither:. analyzed (11 contracts with 100 detectors), 16 result(s) found
